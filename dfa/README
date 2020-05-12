@@ -1,0 +1,4 @@
+To compile the code: gcc syringePumpSim.c
+To run the code: ./a.out <mLBolus value> <space separated operations>
+
+Operations can be either '+' or '-'.
