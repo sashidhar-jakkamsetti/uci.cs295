@@ -7,7 +7,7 @@
 // Type in size of the bolus (in uL) ---> 500
 // Type in "+" to PUSH that size bolus -> +
 // Type in "-" to PULL that size bolus -> -
-// Type in "exit" to terminate ---------> q
+// Type in "q" to terminate ------------> q
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -29,6 +29,7 @@
 
 #define	boolean	_Bool
 
+// 10 steps per ml; that means 0.1 ml change per step.
 float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
 long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 
@@ -36,12 +37,12 @@ long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-float mLBolus = 0.500; //default bolus size
+float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
-// CommandLine Input
-char inputStr[80] = "";
+// Input related variables
+char inputStr[10] = "";
 boolean inputStrReady = false;
 int inputStrLen = 0;
 
@@ -55,7 +56,7 @@ int quit = 0;
 
 void bolus(int direction)
 {
-	long steps = mLBolus * ustepsPerML; // 100 steps per ml; that means 0.01 ml change per step.
+	long steps = mLBolus * ustepsPerML;
 	if(direction == PUSH)
     {
 		printf("setting the direction to PUSH out liquid....\n");
@@ -74,13 +75,15 @@ void bolus(int direction)
 		}
 	}	
 
-	float usDelay = SPEED_MICROSECONDS_DELAY; //can go down to 20 or 30
-
+	float usDelay = SPEED_MICROSECONDS_DELAY;
+	// dfa_defuse_checker(usDelay, DEF);
+	
 	for(long i=0; i < steps; i++)
     {
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
         sleep(usDelay/100);
+		// dfa_defvalue_checker(usDelay, USE);
 	}
 }
 
@@ -95,9 +98,9 @@ void processInput()
     {
 		bolus(PULL);
 	}
-	else if(atoi(inputStr) != 0)
+	else if(atof(inputStr) != 0)
     {
-		int uLbolus = atoi(inputStr);
+		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
 	}
 	else if(strcmp(inputStr, "q") == 0)
@@ -118,7 +121,7 @@ void readInput()
     char inChar;
     while ((inChar = getchar()) != '\n') 
     {
-        // vulnerable (buffer overflow) piece of code in arduino.
+        // vulnerable (buffer overflow) piece of code.
         inputStr[inputStrLen] = inChar;
         inputStrLen++;
     }
@@ -139,7 +142,7 @@ void loop()
 	}
 }
 
-// Main with command line arguments
+
 int main(int argc, char* argv[]) 
 {
     printf("\nStarting syringe pump\n");
