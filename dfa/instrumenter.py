@@ -1,3 +1,14 @@
+"""
+To run this script: (can run on Python 2.7)
+
+1. Change the "file_path" and "output_file_path" according to the local system.
+2. $ python instrumenter.py
+
+Once the script runs, it will create a new file in the mentioned
+file path named "source.c", which has the required function calls
+to the stub.
+"""
+
 import collections
 import pprint
 import re
