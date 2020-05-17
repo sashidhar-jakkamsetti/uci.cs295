@@ -27,7 +27,7 @@ operators = set([
 # Assumes that secret variable is always declared as (secret) followed by variable declaration. 
 # Also assumes that the variable declaration is always on a new line.
 def identify_secret_variables():
-    with open(file_path) as code_file: # Does not load entire file into memory. Good for large files.
+    with open(file_path) as code_file:
         for line in code_file:
             if(key_word in line):
                 tokens = line.split(' ')
@@ -38,8 +38,6 @@ def identify_secret_variables():
     identify_dependencies()
 
 # def identify aliases():
-
-
 
 def identify_dependencies():
     with open(file_path) as code_file:
