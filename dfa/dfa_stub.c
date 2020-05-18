@@ -1,35 +1,120 @@
-#include "dfa_stub.h"
-
 /* Normal world API */
 
-uint32_t dfa_init(const cfa_addr_t main_start, const cfa_addr_t main_end,
-		  const btbl_entry_t *btbl_start, const btbl_entry_t *btbl_end,
-		  const ltbl_entry_t *ltbl_start, const ltbl_entry_t *ltbl_end)
-{
-	cfa_init_params_t init_params;
-	init_params.main_start = main_start;
-	init_params.main_end = main_end;
-	init_params.btbl_start = btbl_start;
-	init_params.btbl_end = btbl_end;
-	init_params.ltbl_start = ltbl_start;
-	init_params.ltbl_end = ltbl_end;
+#include "util.h"
+#include "dfa_stub.h"
 
-    // pipe
-	return smcall(CFA_EVENT_INIT, (uint32_t)&init_params, 0, 0);
+#define FileName "connector.mem"
+
+struct flock lock;  // lock object on connector.mem
+int fd;  // file descriptor to connector.mem
+
+
+void comm_stub_init()
+{
+	lock.l_type = F_WRLCK;    /* read/write (exclusive versus shared) lock */
+	lock.l_whence = SEEK_SET; /* base for seek offsets */
+	lock.l_start = 0;         /* 1st byte in file */
+	lock.l_len = 0;           /* 0 here means 'until EOF' */
+	lock.l_pid = getpid();    /* process id */
+	
+	if ((fd = open(FileName, "w")) < 0) 
+		report_and_exit("open failed...");
+	
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
 }
 
-
-
-uint32_t dfa_quote(const uint8_t *user_data, const uint32_t user_data_len,
-		   uint8_t *out, uint32_t *out_len)
+void comm_stub_end()
 {
-	cfa_quote_params_t quote_params;
-	quote_params.user_data = user_data;
-	quote_params.user_data_len = user_data_len;
-	quote_params.out = out;
-	quote_params.out_len = out_len;
-
-    // pipe
-	return smcall(CFA_EVENT_QUOTE, (uint32_t)&quote_params, 0, 0);
+	if (close(fd) < 0) 
+		report_and_exit("close failed...");
 }
 
+uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const uint32_t challenge_len)
+{
+	int error;
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		writetofile(fd, 1, sizeof(int));
+		writetofile(fd, &main_start, sizeof(main_start)); 
+		writetofile(fd, &main_end, sizeof(main_end)); 
+		writetofile(fd, challenge, challenge_len); 
+		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
+	}
+
+	lock.l_type = F_UNLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+    	report_and_exit("explicit unlocking failed...");
+
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLKW, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		readfromfile(fd, &error);
+		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+	}
+	return error;
+}
+
+uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_address, const uint32_t variable_len, char event)
+{
+	int error;
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		writetofile(fd, 2, sizeof(int));
+		writetofile(fd, &variable_id, sizeof(variable_id)); 
+		writetofile(fd, variable_address, variable_len); 
+		writetofile(fd, event, sizeof(char)); 
+		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
+	}
+
+	lock.l_type = F_UNLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+    	report_and_exit("explicit unlocking failed...");
+
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLKW, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		readfromfile(fd, &error);
+		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+	}
+	return error;
+}
+
+uint32_t dfa_quote(uint8_t *out, uint32_t *out_len)
+{
+	int error;
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		writetofile(fd, 3, sizeof(int));
+		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
+	}
+
+	lock.l_type = F_UNLCK;
+	if (fcntl(fd, F_SETLK, &lock) < 0)
+    	report_and_exit("explicit unlocking failed...");
+
+	lock.l_type = F_WRLCK;
+	if (fcntl(fd, F_SETLKW, &lock) < 0)
+		report_and_exit("fcntl failed to get lock...");
+	else 
+	{
+		*out_len = readfromfile(fd, out);
+		readfromfile(fd, &error);
+		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+	}
+	return error;
+}

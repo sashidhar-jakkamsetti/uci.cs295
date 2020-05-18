@@ -13,6 +13,7 @@
 #include<stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "dfa_stub.h"
 
 /* -- Constants -- */
 #define SYRINGE_VOLUME_ML 10.0
@@ -37,7 +38,7 @@ long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-float mLBolus = 0; //default bolus size
+(secret) float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
@@ -50,9 +51,11 @@ int inputStrLen = 0;
 int quit = 0;
 
 // DFA monitor arguments
-// static uint8_t user_data[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-// static uint8_t quote_out[128];
-// static uint32_t quote_len;
+static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+static uint32_t challenge_len;
+static uint8_t quote_out[128];
+static uint32_t quote_len;
+
 
 void bolus(int direction)
 {
@@ -135,21 +138,33 @@ void loop()
 	readInput();
 	if(inputStrReady)
     {
-		//dfa_init();
+		challenge_len = sizeof(challenge);
+		dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
 		processInput();
-		//quote_len = sizeof(quote_out);
-		//dfa_quote();
+		quote_len = sizeof(quote_out);
+		//dfa_quote(quote_out, quote_len);
 	}
 }
 
+void initialize()
+{
+	printf("\nStarting syringe pump.\n");
+	comm_stub_init();
+}
+
+void terminate()
+{
+	printf("\nTerminating syringe pump.\n");
+	comm_stub_end();
+}
 
 int main(int argc, char* argv[]) 
 {
-    printf("\nStarting syringe pump\n");
-
+	initialize()
     // infinite loop for reading and processing input
     while(!quit) 
     {
         loop();
     }
+	terminate();
 }
