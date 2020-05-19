@@ -98,8 +98,10 @@ def insert_stub_function_calls():
             open_paranthesis_cnt = 0
             in_scope = False
             for line_number,line in enumerate(code_file):
-                line = re.sub('//.*?(\r\n?|\n)|/\*.*?\*/', '\n', line, flags=re.S)
+                # line = re.sub('//.*?(\r\n?|\n)|/\*.*?\*/', '\n', line, flags=re.S)
                 line = line.replace("(secret) ","")
+                line_copy = line
+                line = line.replace(";","")
                 tokens = []
                 tokens.extend(line.strip().strip(';').split(' '))
                 if("{" in line):
@@ -111,9 +113,8 @@ def insert_stub_function_calls():
                     else:
                         open_paranthesis_cnt = 0
                         in_scope = False
-                if(len(line) > 1):
-                    f2.write(line)
-                if("enum{PUSH,PULL};" in prev_line):
+                f2.write(line_copy)
+                if("enum{" in prev_line): # need to change this.
                     f2.write("enum{DEF,USE};\n")
 
                 for op in operators:
