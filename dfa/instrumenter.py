@@ -15,8 +15,7 @@ import pprint
 import re
 import sys
 
-# file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/syringePumpSim.c"
-# output_file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/source.c"
+
 file_path = sys.argv[1]
 output_file_path = sys.argv[2]
 key_word = "(secret)"
