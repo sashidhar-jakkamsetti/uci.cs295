@@ -3,7 +3,7 @@ To run this script: (can run on Python 2.7)
 
 1. Change the "file_path" and "output_file_path" according to the local system.
 2. Add "(secret) " in the beginning of line 33,34,40,41 of syringePumpSim.c to test the script.
-3. $ python instrumenter.py
+3. $ python instrumenter.py syringePumpSim.c source.c (assuming syringePumpSim.c is in the same directory as instrumenter.py)
 
 Once the script runs, it will create a new file in the mentioned
 file path named "source.c", which has the required function calls
@@ -13,9 +13,12 @@ to the stub.
 import collections
 import pprint
 import re
+import sys
 
-file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/syringePumpSim.c"
-output_file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/source.c"
+# file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/syringePumpSim.c"
+# output_file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/source.c"
+file_path = sys.argv[1]
+output_file_path = sys.argv[2]
 key_word = "(secret)"
 
 prime_data_variables = set()
@@ -119,16 +122,16 @@ def insert_stub_function_calls():
                         idx = tokens.index(op)
                         for token in reversed(tokens[idx+1:]):
                             if(token in variable_type_map):
-                                f2.write("\t\t\t\tprimeVariableChecker({}, USE);\n".format(token))
+                                f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
                         if(op == "="):
                             for token in reversed(tokens[:idx]):
                                 if(token in variable_type_map):
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, DEF);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
                         else:
                             for token in reversed(tokens[:idx]):
                                 if(token in variable_type_map):
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, USE);\n".format(token))
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, DEF);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
                 
                 prev_line = line
 
