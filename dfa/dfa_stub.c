@@ -40,7 +40,7 @@ void comm_stub_end()
     shm_unlink(BackingFile);
 }
 
-uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const uint32_t challenge_len)
+uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const int challenge_len)
 {
 	int func_id = 1;
 
@@ -62,7 +62,7 @@ uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint
 	return error;
 }
 
-uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_address, const uint32_t variable_len, char event)
+uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_address, const int variable_len, const char *report_snip, const int report_len, char event)
 {
 	int func_id = 2;
 
@@ -70,6 +70,7 @@ uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_a
 	ipointer = writetoSmem(memptr, ipointer, &func_id, sizeof(func_id));
 	ipointer = writetoSmem(memptr, ipointer, &variable_id, sizeof(variable_id));
 	ipointer = writetoSmem(memptr, ipointer, variable_address, variable_len);
+	ipointer = writetoSmem(memptr, ipointer, report_snip, report_len);
 	ipointer = writetoSmem(memptr, ipointer, &event, sizeof(char));
 
   	if (sem_post(semptr) < 0) 

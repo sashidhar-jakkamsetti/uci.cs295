@@ -36,8 +36,11 @@ static uint32_t challenge_len;
 static uint8_t quote_out[128];
 static uint32_t quote_len;
 
+unsigned ipointer;
+
 void dfa_init()
 {
+    //ipointer = readfromSmem(memptr, ipointer, &main_start);
     printf("in dfa_init()\n");
 }
 
@@ -55,7 +58,7 @@ void loop()
 {
     int func_id = 0;
 
-    unsigned ipointer = 0;
+    ipointer = 0;
     if (!sem_wait(semptr)) 
     {
         ipointer = readfromSmem(memptr, ipointer, &func_id);

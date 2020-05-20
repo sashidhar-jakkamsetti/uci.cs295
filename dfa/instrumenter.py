@@ -77,7 +77,7 @@ def identify_dependencies():
     display_current_results()
 
 def display_current_results():
-    print "\nPrime Data Variables: ",prime_data_variables
+    print ("\nPrime Data Variables: ", prime_data_variables)
     pprint.pprint(variable_type_map, width=1)
 
 def generate_variable_type_map():
