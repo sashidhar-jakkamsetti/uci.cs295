@@ -3,7 +3,7 @@ To run this script: (can run on Python 2.7)
 
 1. Change the "file_path" and "output_file_path" according to the local system.
 2. Add "(secret) " in the beginning of line 33,34,40,41 of syringePumpSim.c to test the script.
-3. $ python instrumenter.py
+3. $ python instrumenter.py syringePumpSim.c source.c (assuming syringePumpSim.c is in the same directory as instrumenter.py)
 
 Once the script runs, it will create a new file in the mentioned
 file path named "source.c", which has the required function calls
@@ -13,9 +13,11 @@ to the stub.
 import collections
 import pprint
 import re
+import sys
 
-file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/syringePumpSim.c"
-output_file_path = "/Users/siddharthnarasimhan/uci.cs295/dfa/source.c"
+
+file_path = sys.argv[1]
+output_file_path = sys.argv[2]
 key_word = "(secret)"
 
 prime_data_variables = set()
@@ -96,8 +98,10 @@ def insert_stub_function_calls():
             open_paranthesis_cnt = 0
             in_scope = False
             for line_number,line in enumerate(code_file):
-                line = re.sub('//.*?(\r\n?|\n)|/\*.*?\*/', '\n', line, flags=re.S)
+                # line = re.sub('//.*?(\r\n?|\n)|/\*.*?\*/', '\n', line, flags=re.S)
                 line = line.replace("(secret) ","")
+                line_copy = line
+                line = line.replace(";","")
                 tokens = []
                 tokens.extend(line.strip().strip(';').split(' '))
                 if("{" in line):
@@ -109,9 +113,8 @@ def insert_stub_function_calls():
                     else:
                         open_paranthesis_cnt = 0
                         in_scope = False
-                if(len(line) > 1):
-                    f2.write(line)
-                if("enum{PUSH,PULL};" in prev_line):
+                f2.write(line_copy)
+                if("enum{" in prev_line): # need to change this.
                     f2.write("enum{DEF,USE};\n")
 
                 for op in operators:
@@ -119,16 +122,16 @@ def insert_stub_function_calls():
                         idx = tokens.index(op)
                         for token in reversed(tokens[idx+1:]):
                             if(token in variable_type_map):
-                                f2.write("\t\t\t\tprimeVariableChecker({}, USE);\n".format(token))
+                                f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
                         if(op == "="):
                             for token in reversed(tokens[:idx]):
                                 if(token in variable_type_map):
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, DEF);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
                         else:
                             for token in reversed(tokens[:idx]):
                                 if(token in variable_type_map):
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, USE);\n".format(token))
-                                    f2.write("\t\t\t\tprimeVariableChecker({}, DEF);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
                 
                 prev_line = line
 
