@@ -14,4 +14,4 @@ syringePumpSim:
 	$(CC) $(CFLAGS) syringePumpSim.c dfa_stub.c -o syringePumpSim.o
 
 clean:
-	rm *.o
+	rm *.o *.out

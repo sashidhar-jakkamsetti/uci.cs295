@@ -23,6 +23,13 @@ unsigned writetoSmem(const void* memptr, const unsigned index, const void *datap
     return ipointer;
 }
 
+int readlenfromSmem(const void* memptr, const unsigned index)
+{
+    int size;
+    memcpy(&size, (char*)memptr + index, sizeof(size));
+    return size;
+}
+
 unsigned readfromSmem(const void* memptr, const unsigned index, void *datapointer)
 {
     unsigned ipointer = index;

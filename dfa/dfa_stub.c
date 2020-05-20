@@ -62,16 +62,16 @@ uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint
 	return error;
 }
 
-uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_address, const int variable_len, const char *report_snip, const int report_len, char event)
+uint32_t dfa_primevariable_checker(const int variable_id, const void *variable, const int variable_len, const char *report_snip, const int report_len, int event)
 {
 	int func_id = 2;
 
 	unsigned ipointer = 0;
 	ipointer = writetoSmem(memptr, ipointer, &func_id, sizeof(func_id));
 	ipointer = writetoSmem(memptr, ipointer, &variable_id, sizeof(variable_id));
-	ipointer = writetoSmem(memptr, ipointer, variable_address, variable_len);
+	ipointer = writetoSmem(memptr, ipointer, variable, variable_len);
 	ipointer = writetoSmem(memptr, ipointer, report_snip, report_len);
-	ipointer = writetoSmem(memptr, ipointer, &event, sizeof(char));
+	ipointer = writetoSmem(memptr, ipointer, &event, sizeof(int));
 
   	if (sem_post(semptr) < 0) 
 		report_and_exit("sem_post");
@@ -99,8 +99,8 @@ uint32_t dfa_quote(uint8_t *out, uint32_t *out_len)
 	if (!sem_wait(semptr))
 	{
 		ipointer = 0;
+		*((unsigned*)out_len) = readlenfromSmem(memptr, ipointer);
 		ipointer = readfromSmem(memptr, ipointer, out);
-		*((unsigned*)out_len) = ipointer - sizeof(int);
 		ipointer = readfromSmem(memptr, ipointer, &error);
 	}
 	return error;

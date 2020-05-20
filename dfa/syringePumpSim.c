@@ -46,7 +46,7 @@ int quit = 0;
 // DFA monitor arguments
 static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
 static uint32_t challenge_len;
-static uint8_t quote_out[128];
+static uint8_t quote_out[64];
 static uint32_t quote_len;
 
 

@@ -8,31 +8,34 @@
 #include <sys/stat.h>
 #include <semaphore.h>
 #include <string.h>
-#include "util.h"
 
+#include "util.h"
+#include "ra.h"
 
 #define BackingFile "connector.mem"
 #define ByteSize 512
 #define AccessPerms 0644
 #define SemaphoreName "connector.sem"
+#define ReportFileName "report.out"
 
 int fd;
 sem_t* semptr;
 void* memptr;
+char* report;
+int preport;
+
+enum{DEF,USE};
 
 struct kvp
 {
     int key;
-    void *address;
     void *value;
+    int value_len;
 };
 
 static struct kvp primevariable_storage[100];
+int nprimevariable = 0;
 
-static uint32_t main_start;
-static uint32_t main_end;
-static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-static uint32_t challenge_len;
 static uint8_t quote_out[128];
 static uint32_t quote_len;
 
@@ -40,18 +43,101 @@ unsigned ipointer;
 
 void dfa_init()
 {
-    //ipointer = readfromSmem(memptr, ipointer, &main_start);
     printf("in dfa_init()\n");
+
+    report = (char *)malloc(1024);
+    preport = 0;
+
+    uint32_t main_start;
+    uint32_t main_end;
+    uint8_t *challenge;
+    int challenge_len;
+    
+    ipointer = readfromSmem(memptr, ipointer, &main_start);
+    ipointer = readfromSmem(memptr, ipointer, &main_end);
+    challenge_len = readlenfromSmem(memptr, ipointer);
+    challenge = (uint8_t *) malloc(challenge_len);
+    ipointer = readfromSmem(memptr, ipointer, challenge);
+
+    hmac_init(main_start, main_end, challenge, challenge_len);
+
+    free(challenge);
 }
 
 void dfa_primevariable_checker()
 {
     printf("in void dfa_primevariable_checker()\n");
+
+    int variable_id;
+    void *variable;
+    int variable_len;
+    char *report_snip;
+    int report_snip_len;
+    int event;
+
+    ipointer = readfromSmem(memptr, ipointer, &variable_id);
+    variable_len = readlenfromSmem(memptr, ipointer);
+    variable = malloc(variable_len);
+    ipointer = readfromSmem(memptr, ipointer, variable);
+    report_snip_len = readlenfromSmem(memptr, ipointer);
+    report_snip = (char *)malloc(report_snip_len);
+    ipointer = readfromSmem(memptr, ipointer, report_snip);
+    ipointer = readfromSmem(memptr, ipointer, &event);
+
+    int found = 0;
+    for (int i = 0; i < nprimevariable; i++)
+    {
+        if (primevariable_storage[i].key == variable_id)
+        {
+            found = 1;
+            if (event == (int)DEF)
+            {
+                free(primevariable_storage[i].value);
+                primevariable_storage[i].value = variable;
+                primevariable_storage[i].value_len = variable_len;
+            }
+            else if (event == (int)USE)
+            {
+                if (variable_len != primevariable_storage[i].value_len 
+                        || memcmp(primevariable_storage[i].value, variable, variable_len) != 0)
+                {
+                    memcpy(report + preport, report_snip, report_snip_len);
+                    preport += report_snip_len;
+                    hmac_update(report_snip, report_snip_len);
+                }
+            }
+        }
+    }
+
+    if (found == 0)
+    {
+        primevariable_storage[nprimevariable].key = variable_id;
+        primevariable_storage[nprimevariable].value = variable;
+        primevariable_storage[nprimevariable].value_len = variable_len;
+        nprimevariable += 1;
+    }
 }
 
 void dfa_quote()
 {
     printf("in dfa_quote()\n");
+
+    uint8_t *out;
+    uint32_t *out_len;
+
+    hmac_quote(out, out_len);
+    ipointer = writetoSmem(memptr, ipointer, out, (int)(*out_len));
+
+    int report_fd = open(ReportFileName, O_RDWR | O_CREAT, AccessPerms);
+    write(report_fd, report, preport);
+    close(report_fd);
+
+    // clean up
+    for (int i = 0; i < nprimevariable; i++)
+    {
+        free(primevariable_storage[i].value);
+    }
+    free(report);
 }
 
 void loop()
@@ -66,11 +152,14 @@ void loop()
         {
             case 1:
                 dfa_init();
+                ipointer = 0;
                 break;
             case 2:
                 dfa_primevariable_checker();
+                ipointer = 0;
                 break;
             case 3:
+                ipointer = 0;
                 dfa_quote();
                 break;
             
@@ -80,7 +169,6 @@ void loop()
         }
 
         int error = 0;
-        ipointer = 0;
         ipointer = writetoSmem(memptr, ipointer, &error, sizeof(error));
         sem_post(semptr);
     }
