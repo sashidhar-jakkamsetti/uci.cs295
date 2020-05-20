@@ -1,28 +1,36 @@
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
-
+#include <unistd.h>
+#include <memory.h>
 
 void report_and_exit(const char* msg) 
 {
     perror(msg);
-    exit(-1); /* EXIT_FAILURE */
+    exit(-1);
 }
 
-void writetofile(const int fd, const void *datapointer, const int data_len)
+unsigned writetoSmem(const void* memptr, const unsigned index, const void *datapointer, const int size)
 {
-    write(fd, &data_len, sizeof(int));
-    write(fd, datapointer, data_len);
+    unsigned ipointer = index;
+    memcpy((char*)memptr + ipointer, &size, sizeof(size));
+    printf("writing %d bytes\n", size);
+    ipointer += sizeof(size);
+    memcpy((char*)memptr + ipointer, datapointer, size);
+    ipointer += size;
+    return ipointer;
 }
 
-int readfromfile(const int fd, void *datapointer)
+unsigned readfromSmem(const void* memptr, const unsigned index, void *datapointer)
 {
-    int sizetoread;
-    read(fd, &sizetoread, sizeof(int));
-    read(fd, datapointer, sizetoread);
-    return sizetoread;
+    unsigned ipointer = index;
+    unsigned size;
+    memcpy(&size, (char*)memptr + ipointer, sizeof(size));
+    printf("reading %d bytes\n", size);
+    ipointer += sizeof(size);
+    memcpy(datapointer, (char*)memptr + ipointer, size);
+    ipointer += size;
+    return ipointer;
 }

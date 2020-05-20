@@ -3,118 +3,104 @@
 #include "util.h"
 #include "dfa_stub.h"
 
-#define FileName "connector.mem"
+#define BackingFile "connector.mem"
+#define ByteSize 512
+#define AccessPerms 0644
+#define SemaphoreName "connector.sem"
 
-struct flock lock;  // lock object on connector.mem
-int fd;  // file descriptor to connector.mem
+int fd;
+sem_t* semptr;
+void* memptr;
 
 
 void comm_stub_init()
 {
-	lock.l_type = F_WRLCK;    /* read/write (exclusive versus shared) lock */
-	lock.l_whence = SEEK_SET; /* base for seek offsets */
-	lock.l_start = 0;         /* 1st byte in file */
-	lock.l_len = 0;           /* 0 here means 'until EOF' */
-	lock.l_pid = getpid();    /* process id */
-	
-	if ((fd = open(FileName, "w")) < 0) 
-		report_and_exit("open failed...");
-	
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
+	fd = shm_open(BackingFile, O_RDWR | O_CREAT, AccessPerms);
+    if (fd < 0) 
+		report_and_exit("Can't open shared mem segment...");
+
+    ftruncate(fd, ByteSize);
+    memptr = mmap(NULL, ByteSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if ((caddr_t) -1  == memptr)
+		report_and_exit("Can't get segment...");
+
+    fprintf(stderr, "shared mem address: %p [0..%d]\n", memptr, ByteSize - 1);
+    fprintf(stderr, "backing file:       %s\n", BackingFile );
+
+	semptr = sem_open(SemaphoreName, O_CREAT, AccessPerms, 0);
+	if (semptr == (void*) -1)
+		report_and_exit("sem_open");
 }
 
 void comm_stub_end()
 {
-	if (close(fd) < 0) 
-		report_and_exit("close failed...");
+    munmap(memptr, ByteSize);
+	close(fd);
+    sem_close(semptr);
+    shm_unlink(BackingFile);
 }
 
 uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const uint32_t challenge_len)
 {
-	int error;
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
-	{
-		writetofile(fd, 1, sizeof(int));
-		writetofile(fd, &main_start, sizeof(main_start)); 
-		writetofile(fd, &main_end, sizeof(main_end)); 
-		writetofile(fd, challenge, challenge_len); 
-		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
-	}
+	int func_id = 1;
 
-	lock.l_type = F_UNLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-    	report_and_exit("explicit unlocking failed...");
+	unsigned ipointer = 0;
+	ipointer = writetoSmem(memptr, ipointer, &func_id, sizeof(func_id));
+	ipointer = writetoSmem(memptr, ipointer, &main_start, sizeof(main_start));
+	ipointer = writetoSmem(memptr, ipointer, &main_end, sizeof(main_end));
+	ipointer = writetoSmem(memptr, ipointer, challenge, challenge_len);
 
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLKW, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
+  	if (sem_post(semptr) < 0) 
+		report_and_exit("sem_post");
+
+	int error = 0;
+	if (!sem_wait(semptr))
 	{
-		readfromfile(fd, &error);
-		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+		ipointer = 0;
+		ipointer = readfromSmem(memptr, ipointer, &error);
 	}
 	return error;
 }
 
 uint32_t dfa_primevariable_checker(const int variable_id, const void *variable_address, const uint32_t variable_len, char event)
 {
-	int error;
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
-	{
-		writetofile(fd, 2, sizeof(int));
-		writetofile(fd, &variable_id, sizeof(variable_id)); 
-		writetofile(fd, variable_address, variable_len); 
-		writetofile(fd, event, sizeof(char)); 
-		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
-	}
+	int func_id = 2;
 
-	lock.l_type = F_UNLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-    	report_and_exit("explicit unlocking failed...");
+	unsigned ipointer = 0;
+	ipointer = writetoSmem(memptr, ipointer, &func_id, sizeof(func_id));
+	ipointer = writetoSmem(memptr, ipointer, &variable_id, sizeof(variable_id));
+	ipointer = writetoSmem(memptr, ipointer, variable_address, variable_len);
+	ipointer = writetoSmem(memptr, ipointer, &event, sizeof(char));
 
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLKW, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
+  	if (sem_post(semptr) < 0) 
+		report_and_exit("sem_post");
+
+	int error = 0;
+	if (!sem_wait(semptr))
 	{
-		readfromfile(fd, &error);
-		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+		ipointer = 0;
+		ipointer = readfromSmem(memptr, ipointer, &error);
 	}
 	return error;
 }
 
 uint32_t dfa_quote(uint8_t *out, uint32_t *out_len)
 {
-	int error;
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
-	{
-		writetofile(fd, 3, sizeof(int));
-		fprintf(stderr, "Process %d has written to data file...\n", lock.l_pid);
-	}
+	int func_id = 3;
 
-	lock.l_type = F_UNLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-    	report_and_exit("explicit unlocking failed...");
+	unsigned ipointer = 0;
+	ipointer = writetoSmem(memptr, ipointer, &func_id, sizeof(func_id));
 
-	lock.l_type = F_WRLCK;
-	if (fcntl(fd, F_SETLKW, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
+  	if (sem_post(semptr) < 0) 
+		report_and_exit("sem_post");
+
+	int error = 0;
+	if (!sem_wait(semptr))
 	{
-		*out_len = readfromfile(fd, out);
-		readfromfile(fd, &error);
-		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
+		ipointer = 0;
+		ipointer = readfromSmem(memptr, ipointer, out);
+		*((unsigned*)out_len) = ipointer - sizeof(int);
+		ipointer = readfromSmem(memptr, ipointer, &error);
 	}
 	return error;
 }

@@ -5,10 +5,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <semaphore.h>
 
 /* Normal world API */
 
 void comm_stub_init();
+void comm_stub_end();
 
 uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *user_data, const uint32_t user_data_len);
 

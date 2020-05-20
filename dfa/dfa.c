@@ -4,20 +4,30 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <semaphore.h>
+#include <string.h>
 #include "util.h"
 
-#define FileName "connector.mem"
 
-struct flock lock;  // lock object on connector.mem
-int fd;  // file descriptor to connector.mem
+#define BackingFile "connector.mem"
+#define ByteSize 512
+#define AccessPerms 0644
+#define SemaphoreName "connector.sem"
 
-typedef struct kv
+int fd;
+sem_t* semptr;
+void* memptr;
+
+struct kvp
 {
     int key;
+    void *address;
     void *value;
 };
 
-static struct kv[100];
+static struct kvp primevariable_storage[100];
 
 static uint32_t main_start;
 static uint32_t main_end;
@@ -28,78 +38,81 @@ static uint32_t quote_len;
 
 void dfa_init()
 {
-
+    printf("in dfa_init()\n");
 }
 
 void dfa_primevariable_checker()
 {
-
+    printf("in void dfa_primevariable_checker()\n");
 }
 
 void dfa_quote()
 {
-
+    printf("in dfa_quote()\n");
 }
 
 void loop()
 {
     int func_id = 0;
 
-    while(1)
+    unsigned ipointer = 0;
+    if (!sem_wait(semptr)) 
     {
-        fcntl(fd, F_GETLK, &lock);
-        if (lock.l_type == F_WRLCK)
-            break;
-    }
+        ipointer = readfromSmem(memptr, ipointer, &func_id);
+        switch (func_id)
+        {
+            case 1:
+                dfa_init();
+                break;
+            case 2:
+                dfa_primevariable_checker();
+                break;
+            case 3:
+                dfa_quote();
+                break;
+            
+            default:
+                printf("bad input func_id %d: \n", func_id);
+                return;
+        }
 
-    lock.l_type = F_WRLCK;
-    if (fcntl(fd, F_SETLKW, &lock) < 0)
-		report_and_exit("fcntl failed to get lock...");
-	else 
-	{
-		readfromfile(fd, &func_id);
-		fprintf(stderr, "Process %d has read from data file...\n", lock.l_pid);
-	}
-
-    switch (func_id)
-    {
-        case 1:
-            dfa_init();
-            break;
-        case 2:
-            dfa_primevariable_checker();
-            break;
-        case 3:
-            dfa_quote();
-            break;
-        
-        default:
-            return;
+        int error = 0;
+        ipointer = 0;
+        ipointer = writetoSmem(memptr, ipointer, &error, sizeof(error));
+        sem_post(semptr);
     }
-    writetofile(fd, 0, sizeof(int));
-    
-    lock.l_type = F_UNLCK;
-	if (fcntl(fd, F_SETLK, &lock) < 0)
-    	report_and_exit("explicit unlocking failed...");
 }
 
 
 int main() 
 {
-    lock.l_type = F_UNLCK;    /* unlock intially */
-    lock.l_whence = SEEK_SET; /* base for seek offsets */
-    lock.l_start = 0;         /* 1st byte in file */
-    lock.l_len = 0;           /* 0 here means 'until EOF' */
-    lock.l_pid = getpid();    /* process id */
-    
-    if ((fd = open(FileName, "w")) < 0)
-        report_and_exit("open to read failed...");
+    printf("\nStarting the Secure DFA Monitor.\n");
+
+    fd = shm_open(BackingFile, O_RDWR | O_CREAT, AccessPerms);
+    if (fd < 0) 
+        report_and_exit("Can't open shared mem segment...");
+
+    ftruncate(fd, ByteSize);
+    memptr = mmap(NULL, ByteSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if ((void *) -1  == memptr) 
+        report_and_exit("Can't get segment...");
+
+    fprintf(stderr, "shared mem address: %p [0..%d]\n", memptr, ByteSize - 1);
+    fprintf(stderr, "backing file:       %s\n", BackingFile );
+
+	semptr = sem_open(SemaphoreName, O_CREAT, AccessPerms, 0);
+	if (semptr == (void*) -1) 
+        report_and_exit("sem_open");
 
     while(1)
     {
-        loop()
+        loop();
     }
 
-    close(fd);
+    munmap(memptr, ByteSize);
+	close(fd);
+    sem_close(semptr);
+    shm_unlink(BackingFile);
     return 0;
 }

@@ -2,13 +2,6 @@
 //https://github.com/naroom/OpenSyringePump/blob/master/syringePump/syringePump.ino
 //https://hackaday.io/project/1838-open-syringe-pump
 
-// Running through command line:
-// Start the program  ------------------> ./syringePumpSim
-// Type in size of the bolus (in uL) ---> 500
-// Type in "+" to PUSH that size bolus -> +
-// Type in "-" to PULL that size bolus -> -
-// Type in "q" to terminate ------------> q
-
 #include<stdio.h>
 #include<stdlib.h>
 #include <string.h>
@@ -38,7 +31,7 @@ long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-(secret) float mLBolus = 0; //default bolus size
+float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
@@ -79,19 +72,17 @@ void bolus(int direction)
 	}	
 
 	float usDelay = SPEED_MICROSECONDS_DELAY;
-	// dfa_defuse_checker(usDelay, DEF);
 	
 	for(long i=0; i < steps; i++)
     {
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
         sleep(usDelay/100);
-		// dfa_defvalue_checker(usDelay, USE);
 	}
 }
 
 
-void processInput()
+void process()
 {
 	if(inputStr[0] == '+')
     {
@@ -132,20 +123,6 @@ void readInput()
     inputStrReady = true;
 }
 
-
-void loop()
-{
-	readInput();
-	if(inputStrReady)
-    {
-		challenge_len = sizeof(challenge);
-		dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
-		processInput();
-		quote_len = sizeof(quote_out);
-		//dfa_quote(quote_out, quote_len);
-	}
-}
-
 void initialize()
 {
 	printf("\nStarting syringe pump.\n");
@@ -158,13 +135,30 @@ void terminate()
 	comm_stub_end();
 }
 
+void loop()
+{
+	readInput();
+	if(inputStrReady)
+    {
+		challenge_len = sizeof(challenge);
+		dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
+
+		process();
+
+		quote_len = sizeof(quote_out);
+		//dfa_quote(quote_out, quote_len);
+	}
+}
+
+
 int main(int argc, char* argv[]) 
 {
-	initialize()
-    // infinite loop for reading and processing input
+	initialize();
+
     while(!quit) 
     {
         loop();
     }
+
 	terminate();
 }
