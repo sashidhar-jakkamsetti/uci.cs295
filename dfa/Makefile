@@ -8,7 +8,7 @@ CFLAGS=-Wall
 all: dfa syringePumpSim
 
 dfa:
-	$(CC) $(CFLAGS) dfa.c -o dfa.o
+	$(CC) $(CFLAGS) dfa.c ra.c -o dfa.o
 
 syringePumpSim:
 	$(CC) $(CFLAGS) syringePumpSim.c dfa_stub.c -o syringePumpSim.o

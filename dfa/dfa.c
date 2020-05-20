@@ -109,7 +109,7 @@ void dfa_primevariable_checker()
         }
     }
 
-    if (found == 0)
+    if (found == 0 && event == (int)DEF)
     {
         primevariable_storage[nprimevariable].key = variable_id;
         primevariable_storage[nprimevariable].value = variable;

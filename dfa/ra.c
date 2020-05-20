@@ -23,20 +23,20 @@ uint8_t one_time_key[ONE_TIME_KEY_LEN];
 
 uint8_t digest[DIGEST_LEN];
 
+// Key Derivation Function
+// void hmac(output, key, key_len, input, input_len);
+
 
 void hmac_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const int challenge_len)
 {
-    // Key Derivation Function
-    // hmac(output, key, key_len, input, input_len);
-
     // hmac(one_time_key, master_key, MASTER_KEY_LEN, challenge, challenge_len);
     // hmac(one_time_key, one_time_key, ONE_TIME_KEY_LEN, &main_start, sizeof(main_start));
-    // hmac(one_time_key, one_time_key, ONE_TIME_KEY_LEN, &main_end, sizeof(main_end));
+    // hmac(digest, one_time_key, ONE_TIME_KEY_LEN, &main_end, sizeof(main_end));
 }
 
 void hmac_update(const char* report_snip, const int report_snip_len)
 {
-    // hmac(digest, one_time_key, ONE_TIME_KEY_LEN, (void *)report_snip, report_snip_len);
+    // hmac(digest, digest, DIGEST_LEN, (void *)report_snip, report_snip_len);
 }
 
 void hmac_quote(uint8_t *out, uint32_t *out_len)
