@@ -18,6 +18,6 @@ uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint
 
 // mLBolus = 3 + 2;
 // dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:bolus, v:mLBolus\n", 19, (int)DEF);
-uint32_t dfa_primevariable_checker(const int variable_id, const void *variable, const int variable_len, const char *report_snip, const int report_len, char event);
+uint32_t dfa_primevariable_checker(const int variable_id, const void *variable, const int variable_len, const char *report_snip, const int report_len, int event);
 
 uint32_t dfa_quote(uint8_t *out, uint32_t *out_len);

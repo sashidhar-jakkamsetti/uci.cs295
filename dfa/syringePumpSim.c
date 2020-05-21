@@ -29,6 +29,7 @@ long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
+//enum{DEF,USE};
 
 /* -- Default Parameters -- */
 float mLBolus = 0; //default bolus size
@@ -53,6 +54,7 @@ static uint32_t quote_len;
 void bolus(int direction)
 {
 	long steps = mLBolus * ustepsPerML;
+	//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:bolus, v:mLBolus\n", 20, (int)USE);
 	if(direction == PUSH)
     {
 		printf("setting the direction to PUSH out liquid....\n");
@@ -96,6 +98,7 @@ void process()
     {
 		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
+		//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:process, v:mLBolus\n", 22, (int)DEF);
 	}
 	else if(strcmp(inputStr, "q") == 0)
     {
@@ -146,7 +149,7 @@ void loop()
 		process();
 
 		quote_len = sizeof(quote_out);
-		//dfa_quote(quote_out, quote_len);
+		dfa_quote(quote_out, &quote_len);
 	}
 }
 

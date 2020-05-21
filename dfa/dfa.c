@@ -34,9 +34,9 @@ struct kvp
 };
 
 static struct kvp primevariable_storage[100];
-int nprimevariable = 0;
+int nprimevariable;
 
-static uint8_t quote_out[128];
+static uint8_t quote_out[64];
 static uint32_t quote_len;
 
 unsigned ipointer;
@@ -46,6 +46,7 @@ void dfa_init()
     printf("in dfa_init()\n");
 
     report = (char *)malloc(1024);
+    memset(report, 0, 1024);
     preport = 0;
 
     uint32_t main_start;
@@ -101,6 +102,7 @@ void dfa_primevariable_checker()
                 if (variable_len != primevariable_storage[i].value_len 
                         || memcmp(primevariable_storage[i].value, variable, variable_len) != 0)
                 {
+                    printf("ERROR:in use\n");
                     memcpy(report + preport, report_snip, report_snip_len);
                     preport += report_snip_len;
                     hmac_update(report_snip, report_snip_len);
@@ -128,15 +130,11 @@ void dfa_quote()
     hmac_quote(out, out_len);
     ipointer = writetoSmem(memptr, ipointer, out, (int)(*out_len));
 
-    int report_fd = open(ReportFileName, O_RDWR | O_CREAT, AccessPerms);
+    FILE* report_file = fopen(ReportFileName, "w");
+    int report_fd = fileno(report_file);
     write(report_fd, report, preport);
-    close(report_fd);
 
-    // clean up
-    for (int i = 0; i < nprimevariable; i++)
-    {
-        free(primevariable_storage[i].value);
-    }
+    fclose(report_file);
     free(report);
 }
 
@@ -164,8 +162,8 @@ void loop()
                 break;
             
             default:
-                printf("bad input func_id %d: \n", func_id);
-                return;
+                printf("bad input func_id: %d\n", func_id);
+                break;
         }
 
         int error = 0;
@@ -196,6 +194,7 @@ int main()
 	if (semptr == (void*) -1) 
         report_and_exit("sem_open");
 
+    nprimevariable = 0;
     while(1)
     {
         loop();
