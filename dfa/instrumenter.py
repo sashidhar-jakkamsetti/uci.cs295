@@ -50,8 +50,7 @@ def identify_secret_variables():
                 prime_data_variables.add(tokens[2])
                 id += 1
                 variable_id_map[tokens[2]] = id
-    
-    # display_current_results()
+
     # identify_aliases() # To Do
     identify_dependencies()
 
@@ -83,12 +82,6 @@ def identify_dependencies():
                                 prime_data_variables.add(tokens[idx-1])
                                 id += 1
                                 variable_id_map[tokens[idx-1]] = id
-               
-    # display_current_results()
-
-def display_current_results():
-    print ("\nPrime Data Variables: ", prime_data_variables)
-    pprint.pprint(variable_id_map, width=1)
 
 def insert_stub_function_calls():
     with open(file_path) as code_file:
@@ -115,7 +108,6 @@ def insert_stub_function_calls():
                 if("enum{" in prev_line): # need to change this.
                     f2.write("enum{DEF,USE};\n")
                     f2.write("char report_snip[100];\n")
-                    f2.write("int len_report_snip = 0;\n")
 
                 for op in operators:
                     if(op in tokens and in_scope):
@@ -124,29 +116,25 @@ def insert_stub_function_calls():
                             if(token in prime_data_variables):
                                 # declare report_snip and len_report_snip in the top.
                                 f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                f2.write('\t\t\t\tlen_report_snip = (int)strlen(report_snip)+{};\n'.format(len(token)))
-                                f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, len_report_snip, (int)USE);\n'.format(
+                                f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
                                     variable_id_map[token], token, token)
                                 )
                         if(op == "="):
                             for token in reversed(tokens[:idx]):
                                 if(token in prime_data_variables):
                                     f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write('\t\t\t\tlen_report_snip = (int)strlen(report_snip)+{};\n'.format(len(token)))
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, len_report_snip, (int)DEF);\n".format(
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
                                         variable_id_map[token], token, token)
                                     )
                         else:
                             for token in reversed(tokens[:idx]):
                                 if(token in prime_data_variables):
                                     f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write('\t\t\t\tlen_report_snip = (int)strlen(report_snip)+{};\n'.format(len(token)))
-                                    f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, len_report_snip, (int)USE);\n'.format(
+                                    f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
                                         variable_id_map[token], token, token)
                                     )
                                     f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write('\t\t\t\tlen_report_snip = (int)strlen(report_snip)+{};\n'.format(len(token)))
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, len_report_snip, (int)DEF);\n".format(
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
                                         variable_id_map[token], token, token)
                                     )
                 
@@ -155,5 +143,3 @@ def insert_stub_function_calls():
 
 identify_secret_variables()
 insert_stub_function_calls()
-
-"line: 32; var_name: abc\n"
