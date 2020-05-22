@@ -19,9 +19,10 @@ import sys
 file_path = sys.argv[1]
 output_file_path = sys.argv[2]
 key_word = "(secret)"
+id = 0
 
 prime_data_variables = set()
-variable_type_map = dict()
+variable_id_map = dict()
 data_types = set([
     "int",
     "char",
@@ -41,19 +42,22 @@ operators = set([
 # Assumes that secret variable is always declared as (secret) followed by variable declaration. 
 # Also assumes that the variable declaration is always on a new line.
 def identify_secret_variables():
+    global id
     with open(file_path) as code_file:
         for line in code_file:
             if(key_word in line):
                 tokens = line.split(' ')
                 prime_data_variables.add(tokens[2])
-    
-    display_current_results()
+                id += 1
+                variable_id_map[tokens[2]] = id
+
     # identify_aliases() # To Do
     identify_dependencies()
 
-# def identify aliases():
+# def identify_aliases():
 
 def identify_dependencies():
+    global id
     with open(file_path) as code_file:
         # File can be scanned twice to include potential dependencies missed out in the first iteration.
         # may be once top-down, and once bottom-up
@@ -66,31 +70,19 @@ def identify_dependencies():
                     if(op in tokens):
                         idx = tokens.index(op)
                         if(len(set(tokens[idx+1:]).intersection(prime_data_variables)) > 0):
-                            prime_data_variables.add(tokens[idx-1])
+                            if(tokens[idx-1] not in prime_data_variables):
+                                prime_data_variables.add(tokens[idx-1])
+                                id += 1
+                                variable_id_map[tokens[idx-1]] = id
                 else:
                     if(op in tokens):
                         idx = tokens.index(op)
                         if(tokens[idx+1] in prime_data_variables):
-                            prime_data_variables.add(tokens[idx-1])
-               
-    generate_variable_type_map()
-    display_current_results()
+                            if(tokens[idx-1] not in prime_data_variables):
+                                prime_data_variables.add(tokens[idx-1])
+                                id += 1
+                                variable_id_map[tokens[idx-1]] = id
 
-def display_current_results():
-    print ("\nPrime Data Variables: ", prime_data_variables)
-    pprint.pprint(variable_type_map, width=1)
-
-def generate_variable_type_map():
-    for var in prime_data_variables:
-        with open(file_path) as code_file:
-            for line in code_file:
-                tokens = []
-                tokens.extend(line.strip().strip(';').split(' '))
-                if(var in tokens and tokens.index(var) > 0):
-                    if(tokens[tokens.index(var)-1] in data_types):
-                        variable_type_map[var] = tokens[tokens.index(var)-1]
-
-# To Do: add neccessary include
 def insert_stub_function_calls():
     with open(file_path) as code_file:
         with open(output_file_path, "w") as f2:
@@ -98,7 +90,6 @@ def insert_stub_function_calls():
             open_paranthesis_cnt = 0
             in_scope = False
             for line_number,line in enumerate(code_file):
-                # line = re.sub('//.*?(\r\n?|\n)|/\*.*?\*/', '\n', line, flags=re.S)
                 line = line.replace("(secret) ","")
                 line_copy = line
                 line = line.replace(";","")
@@ -116,22 +107,36 @@ def insert_stub_function_calls():
                 f2.write(line_copy)
                 if("enum{" in prev_line): # need to change this.
                     f2.write("enum{DEF,USE};\n")
+                    f2.write("char report_snip[100];\n")
 
                 for op in operators:
                     if(op in tokens and in_scope):
                         idx = tokens.index(op)
                         for token in reversed(tokens[idx+1:]):
-                            if(token in variable_type_map):
-                                f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
+                            if(token in prime_data_variables):
+                                # declare report_snip and len_report_snip in the top.
+                                f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
+                                    variable_id_map[token], token, token)
+                                )
                         if(op == "="):
                             for token in reversed(tokens[:idx]):
-                                if(token in variable_type_map):
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
+                                if(token in prime_data_variables):
+                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
+                                        variable_id_map[token], token, token)
+                                    )
                         else:
                             for token in reversed(tokens[:idx]):
-                                if(token in variable_type_map):
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, USE);\n".format(token))
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, DEF);\n".format(token))
+                                if(token in prime_data_variables):
+                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
+                                        variable_id_map[token], token, token)
+                                    )
+                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
+                                        variable_id_map[token], token, token)
+                                    )
                 
                 prev_line = line
 
