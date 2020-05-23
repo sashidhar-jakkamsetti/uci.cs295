@@ -259,7 +259,7 @@ void hmac_update(const char* report_snip, const int report_snip_len)
 
 void hmac_quote(uint8_t *out, uint32_t *out_len)
 {
-    *((*uint32_t)out_len) = DIGEST_LEN;
+    out_len = DIGEST_LEN; // check this again.
     memcpy((void *) out, (void *) digest, DIGEST_LEN);
     memset((void *) one_time_key, 0, ONE_TIME_KEY_LEN);
     memset((void *) digest, 0, DIGEST_LEN);
