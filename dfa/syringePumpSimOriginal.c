@@ -6,7 +6,6 @@
 #include<stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "dfa_stub.h"
 
 /* -- Constants -- */
 #define SYRINGE_VOLUME_ML 10.0
@@ -24,14 +23,14 @@
 #define	boolean	_Bool
 
 // 10 steps per ml; that means 0.1 ml change per step.
-(secret) float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-(secret) long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
+long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-(secret) float mLBolus = 0; //default bolus size
+float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
@@ -128,13 +127,13 @@ void readInput()
 void initialize()
 {
 	printf("\nStarting syringe pump.\n");
-	comm_stub_init();
+	//comm_stub_init();
 }
 
 void terminate()
 {
 	printf("\nTerminating syringe pump.\n");
-	comm_stub_end();
+	//comm_stub_end();
 }
 
 void loop()
@@ -142,13 +141,13 @@ void loop()
 	readInput();
 	if(inputStrReady)
     {
-		challenge_len = sizeof(challenge);
-		dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
+		//challenge_len = sizeof(challenge);
+		//dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
 
 		process();
 
-		quote_len = sizeof(quote_out);
-		dfa_quote(quote_out, &quote_len);
+		//quote_len = sizeof(quote_out);
+		//dfa_quote(quote_out, &quote_len);
 	}
 }
 

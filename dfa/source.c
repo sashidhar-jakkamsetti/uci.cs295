@@ -24,14 +24,16 @@
 #define	boolean	_Bool
 
 // 10 steps per ml; that means 0.1 ml change per step.
-(secret) float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-(secret) long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
+long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
 
+enum{DEF,USE};
+char report_snip[100];
 /* -- Default Parameters -- */
-(secret) float mLBolus = 0; //default bolus size
+float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
@@ -53,11 +55,29 @@ static uint32_t quote_len;
 void bolus(int direction)
 {
 	long steps = mLBolus * ustepsPerML;
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: ustepsPerML");
+				dfa_primevariable_checker(2, (void *)&ustepsPerML, sizeof(ustepsPerML), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLBolus");
+				dfa_primevariable_checker(3, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: steps");
+				dfa_primevariable_checker(4, (void *)&steps, sizeof(steps), report_snip, (int)strlen(report_snip), DEF);
 	//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:bolus, v:mLBolus\n", 20, (int)USE);
 	if(direction == PUSH)
     {
 		printf("setting the direction to PUSH out liquid....\n");
 		mLUsed += mLBolus;
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLBolus");
+				dfa_primevariable_checker(3, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLUsed");
+				dfa_primevariable_checker(5, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLUsed");
+				dfa_primevariable_checker(5, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 	}
 	else if(direction == PULL)
     {
@@ -65,10 +85,22 @@ void bolus(int direction)
 		if((mLUsed-mLBolus) > 0)
         {
 			mLUsed -= mLBolus;
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLBolus");
+				dfa_primevariable_checker(3, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLUsed");
+				dfa_primevariable_checker(5, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), USE);
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLUsed");
+				dfa_primevariable_checker(5, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 		}
 		else
         {
 			mLUsed = 0;
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLUsed");
+				dfa_primevariable_checker(5, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 		}
 	}	
 
@@ -97,6 +129,9 @@ void process()
     {
 		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
+
+				snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: mLBolus");
+				dfa_primevariable_checker(3, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), DEF);
 		//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:process, v:mLBolus\n", 22, (int)DEF);
 	}
 	else if(strcmp(inputStr, "q") == 0)

@@ -248,7 +248,7 @@ int hmacResult (HMACContext * ctx, uint8_t * digest)
 void hmac_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const int challenge_len)
 {
     hmac(SHA256, (unsigned char *) challenge, challenge_len, (unsigned char *) master_key, MASTER_KEY_LEN, digest);
-    hmac(SHA256, digest, DIGEST_LEN, &main_start, sizeof(main_start), digest); // DIGEST_LEN could be wrong
+    hmac(SHA256, digest, DIGEST_LEN, &main_start, sizeof(main_start), digest);
     hmac(SHA256, digest, DIGEST_LEN, &main_end, sizeof(main_end), digest);
 }
 
@@ -257,9 +257,9 @@ void hmac_update(const char* report_snip, const int report_snip_len)
     hmac(SHA256, digest, DIGEST_LEN, (void *)report_snip, report_snip_len, digest);
 }
 
-void hmac_quote(uint8_t *out, uint32_t *out_len)
+void hmac_quote(uint8_t *out, int *out_len)
 {
-    out_len = DIGEST_LEN; // check this again.
+    *out_len = (int)DIGEST_LEN;
     memcpy((void *) out, (void *) digest, DIGEST_LEN);
     memset((void *) one_time_key, 0, ONE_TIME_KEY_LEN);
     memset((void *) digest, 0, DIGEST_LEN);

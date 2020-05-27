@@ -13,4 +13,4 @@ void hmac_init(const uint32_t main_start, const uint32_t main_end, const uint8_t
 
 void hmac_update(const char* report_snip, const int report_snip_len);
 
-void hmac_quote(uint8_t *out, uint32_t *out_len);
+void hmac_quote(uint8_t *out, int *out_len);
