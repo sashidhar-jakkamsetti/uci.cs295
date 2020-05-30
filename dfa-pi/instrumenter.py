@@ -90,7 +90,7 @@ def insert_stub_function_calls():
             open_paranthesis_cnt = 0
             in_scope = False
             for line_number,line in enumerate(code_file):
-                line = line.replace(key_word + " ","")
+                line = line.replace("scrt ","")
                 line_copy = line
                 line = line.replace(";","")
                 tokens = []
@@ -115,26 +115,26 @@ def insert_stub_function_calls():
                         for token in reversed(tokens[idx+1:]):
                             if(token in prime_data_variables):
                                 # declare report_snip and len_report_snip in the top.
-                                f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
+                                f2.write('\n\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                f2.write('\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
                                     variable_id_map[token], token, token)
                                 )
                         if(op == "="):
                             for token in reversed(tokens[:idx]):
                                 if(token in prime_data_variables):
-                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
+                                    f2.write('\n\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write("\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
                                         variable_id_map[token], token, token)
                                     )
                         else:
                             for token in reversed(tokens[:idx]):
                                 if(token in prime_data_variables):
-                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write('\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
+                                    f2.write('\n\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write('\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), USE);\n'.format(
                                         variable_id_map[token], token, token)
                                     )
-                                    f2.write('\n\t\t\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
-                                    f2.write("\t\t\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
+                                    f2.write('\n\t\tsnprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, "; Func: ", __func__, "; Var: {}");\n'.format(token))
+                                    f2.write("\t\tdfa_primevariable_checker({}, (void *)&{}, sizeof({}), report_snip, (int)strlen(report_snip), DEF);\n".format(
                                         variable_id_map[token], token, token)
                                     )
                 

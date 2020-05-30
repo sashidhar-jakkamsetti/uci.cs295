@@ -6,6 +6,7 @@
 #include<stdlib.h>
 #include <string.h>
 #include <unistd.h>
+//#include <wiringPi.h>
 
 /* -- Constants -- */
 #define SYRINGE_VOLUME_ML 10.0
@@ -15,44 +16,43 @@
 #define STEPS_PER_REVOLUTION 10.0
 #define MICROSTEPS_PER_STEP 1.0
 
-#define SPEED_MICROSECONDS_DELAY 100 
+#define SPEED_MICROSECONDS_DELAY 2000
 
 #define	false	0
 #define	true	1
 
 #define	boolean	_Bool
 
+#define LED_OUT_PIN 0
+
+#define InputFileName "input.data"
+
+
+float mLBigBolus = 1.000; //default large bolus size
 // 10 steps per ml; that means 0.1 ml change per step.
-float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
 long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+char inputStr[10] = "";
+float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
 float mLBolus = 0; //default bolus size
-float mLBigBolus = 1.000; //default large bolus size
+//float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
 // Input related variables
-char inputStr[10] = "";
 boolean inputStrReady = false;
 int inputStrLen = 0;
 
 // Loop quit flag
 int quit = 0;
 
-// DFA monitor arguments
-// static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-// static uint32_t challenge_len;
-// static uint8_t quote_out[64];
-// static uint32_t quote_len;
-
 
 void bolus(int direction)
 {
 	long steps = mLBolus * ustepsPerML;
-	//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:bolus, v:mLBolus\n", 20, (int)USE);
 	if(direction == PUSH)
     {
 		printf("setting the direction to PUSH out liquid....\n");
@@ -71,13 +71,18 @@ void bolus(int direction)
 		}
 	}	
 
-	float usDelay = SPEED_MICROSECONDS_DELAY;
+	float usDelay = (1.0 / ustepsPerML) * SPEED_MICROSECONDS_DELAY;
 	
 	for(long i=0; i < steps; i++)
     {
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
-        sleep(usDelay/100);
+		
+		//digitalWrite (LED_OUT_PIN, 1);
+        sleep(usDelay/2);
+
+		//digitalWrite (LED_OUT_PIN, 0);
+		sleep(usDelay/2);
 	}
 }
 
@@ -96,7 +101,10 @@ void process()
     {
 		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
-		//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:process, v:mLBolus\n", 22, (int)DEF);
+		printf("\n after\nmlbolus: %f\n", mLBolus);
+		printf("ustepsperml: %ld\n", ustepsPerML);
+		printf("big bolus: %f\n", mLBigBolus);
+		printf("input len: %d\n", inputStrLen);
 	}
 	else if(strcmp(inputStr, "q") == 0)
     {
@@ -111,22 +119,58 @@ void process()
 }
 
 
+int getVal(char c)
+{
+	int rtVal = 0;
+	if(c >= '0' && c <= '9')
+	{
+		rtVal = c - '0';
+	}
+	else
+	{
+		rtVal = c - 'a' + 10;
+	}
+
+	return rtVal;
+}
+
 void readInput()
 {
-    char inChar;
-    while ((inChar = getchar()) != '\n') 
-    {
-        // vulnerable (buffer overflow) piece of code.
-        inputStr[inputStrLen] = inChar;
-        inputStrLen++;
-    }
-    inputStr[inputStrLen] = '\0';
+	char inChar;
+	while ( access( InputFileName, F_OK ) == -1 ) 
+	{
+		sleep(0.5);
+	} 
+
+	FILE *fr = fopen (InputFileName, "rt");
+	char c = fgetc(fr);
+	while(c != EOF)
+	{
+		inputStr[inputStrLen] = (char)(getVal((char)c) * 16 + getVal((char)fgetc(fr)));
+		printf("%c",inputStr[inputStrLen] );
+		inputStrLen++;
+		c = fgetc(fr);
+		if (c == EOF)
+		{
+			break;
+		}
+		c = fgetc(fr);
+	}
+	fclose(fr);
+	//remove(InputFileName);
+	inputStr[inputStrLen] = '\0';
     inputStrReady = true;
+	printf("\n before\nmlbolus: %f\n", mLBolus);
+	printf("ustepsperml: %ld\n", ustepsPerML);
+	printf("big bolus: %f\n", mLBigBolus);
+	printf("input len: %d\n", inputStrLen);
 }
 
 void initialize()
 {
 	printf("\nStarting syringe pump.\n");
+	//wiringPiSetup();
+	//pinMode (LED_OUT_PIN, OUTPUT) ;
 	//comm_stub_init();
 }
 

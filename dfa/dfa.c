@@ -124,11 +124,11 @@ void dfa_quote()
 {
     printf("in dfa_quote()\n");
 
-    uint8_t *out;
+    uint8_t out[64];
     int out_len;
 
     hmac_quote(out, &out_len);
-    ipointer = writetoSmem(memptr, ipointer, out, (int)out_len);
+    ipointer = writetoSmem(memptr, ipointer, out, out_len);
 
     FILE* report_file = fopen(ReportFileName, "w");
     int report_fd = fileno(report_file);

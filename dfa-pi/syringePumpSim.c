@@ -6,6 +6,9 @@
 #include<stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wiringPi.h>
+#include "dfa_stub.h"
+
 
 /* -- Constants -- */
 #define SYRINGE_VOLUME_ML 10.0
@@ -15,22 +18,24 @@
 #define STEPS_PER_REVOLUTION 10.0
 #define MICROSTEPS_PER_STEP 1.0
 
-#define SPEED_MICROSECONDS_DELAY 100 
+#define SPEED_MICROSECONDS_DELAY 2000
 
 #define	false	0
 #define	true	1
 
 #define	boolean	_Bool
 
+#define LED_OUT_PIN 0
+
 // 10 steps per ml; that means 0.1 ml change per step.
-float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+scrt float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
+scrt long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-float mLBolus = 0; //default bolus size
+scrt float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
@@ -43,16 +48,15 @@ int inputStrLen = 0;
 int quit = 0;
 
 // DFA monitor arguments
-// static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-// static uint32_t challenge_len;
-// static uint8_t quote_out[64];
-// static uint32_t quote_len;
+static uint8_t challenge[8] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+static uint32_t challenge_len;
+static uint8_t quote_out[64];
+static uint32_t quote_len;
 
 
 void bolus(int direction)
 {
 	long steps = mLBolus * ustepsPerML;
-	//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:bolus, v:mLBolus\n", 20, (int)USE);
 	if(direction == PUSH)
     {
 		printf("setting the direction to PUSH out liquid....\n");
@@ -71,13 +75,19 @@ void bolus(int direction)
 		}
 	}	
 
-	float usDelay = SPEED_MICROSECONDS_DELAY;
+	// This delay value is changed accordingly to reflect the corresponding affect on the real syringe pump.
+	float usDelay = (1.0 / ustepsPerML) * SPEED_MICROSECONDS_DELAY;
 	
 	for(long i=0; i < steps; i++)
     {
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
-        sleep(usDelay/100);
+        
+		digitalWrite (LED_OUT_PIN, 1);
+        delay(usDelay/2);
+
+		digitalWrite (LED_OUT_PIN, 0);
+		delay(usDelay/2);
 	}
 }
 
@@ -96,7 +106,6 @@ void process()
     {
 		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
-		//dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), "f:process, v:mLBolus\n", 22, (int)DEF);
 	}
 	else if(strcmp(inputStr, "q") == 0)
     {
@@ -127,13 +136,15 @@ void readInput()
 void initialize()
 {
 	printf("\nStarting syringe pump.\n");
-	//comm_stub_init();
+	wiringPiSetup();
+	pinMode (LED_OUT_PIN, OUTPUT) ;
+	comm_stub_init();
 }
 
 void terminate()
 {
 	printf("\nTerminating syringe pump.\n");
-	//comm_stub_end();
+	comm_stub_end();
 }
 
 void loop()
@@ -141,13 +152,13 @@ void loop()
 	readInput();
 	if(inputStrReady)
     {
-		//challenge_len = sizeof(challenge);
-		//dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
+		challenge_len = sizeof(challenge);
+		dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
 
 		process();
 
-		//quote_len = sizeof(quote_out);
-		//dfa_quote(quote_out, &quote_len);
+		quote_len = sizeof(quote_out);
+		dfa_quote(quote_out, &quote_len);
 	}
 }
 

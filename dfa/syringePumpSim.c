@@ -24,14 +24,14 @@
 #define	boolean	_Bool
 
 // 10 steps per ml; that means 0.1 ml change per step.
-(secret) float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-(secret) long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+scrt float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
+scrt long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 
 /* -- Enums and constants -- */
 enum{PUSH,PULL}; //syringe movement direction
 
 /* -- Default Parameters -- */
-(secret) float mLBolus = 0; //default bolus size
+scrt float mLBolus = 0; //default bolus size
 float mLBigBolus = 1.000; //default large bolus size
 float mLUsed = 0.0;
 
