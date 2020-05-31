@@ -6,7 +6,8 @@
 #include<stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <wiringPi.h>
+#include <wiringPi.h>
+#include <time.h>
 
 /* -- Constants -- */
 #define SYRINGE_VOLUME_ML 10.0
@@ -16,7 +17,7 @@
 #define STEPS_PER_REVOLUTION 10.0
 #define MICROSTEPS_PER_STEP 1.0
 
-#define SPEED_MICROSECONDS_DELAY 2000
+#define SPEED_MICROSECONDS_DELAY 4000
 
 #define	false	0
 #define	true	1
@@ -27,40 +28,55 @@
 
 #define InputFileName "input.data"
 
-
-float mLBigBolus = 1.000; //default large bolus size
-// 10 steps per ml; that means 0.1 ml change per step.
-long ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
-char inputStr[10] = "";
-float mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-
-/* -- Enums and constants -- */
-enum{PUSH,PULL}; //syringe movement direction
-
-/* -- Default Parameters -- */
-float mLBolus = 0; //default bolus size
-//float mLBigBolus = 1.000; //default large bolus size
-float mLUsed = 0.0;
+/* -- Global variables -- */
 
 // Input related variables
 boolean inputStrReady = false;
 int inputStrLen = 0;
+char inputStr[10]; //input string storage
+
+// Bolus size
+float mLBolus; 
+
+// Steps per ml
+long ustepsPerML;
+float mlPerStep;
+
+/* -- Enums and constants -- */
+
+//syringe movement direction
+enum{PUSH,PULL}; 
+
+/* -- Default Parameters -- */
+
+float mLUsed = 0.0;
 
 // Loop quit flag
 int quit = 0;
 
+void print_state()
+{
+	printf("\n\nEchoing data variables.... \n");
+	printf("mlbolus: %f\n", mLBolus);
+	printf("ustepsPerML: %ld\n", ustepsPerML);
+	printf("mlPerStep: %f\n", mlPerStep);
+	printf("input len: %d\n", inputStrLen);
+}
+
 
 void bolus(int direction)
 {
+	print_state();
+
 	long steps = mLBolus * ustepsPerML;
 	if(direction == PUSH)
     {
-		printf("setting the direction to PUSH out liquid....\n");
+		printf("\nsetting the direction to PUSH out liquid....\n");
 		mLUsed += mLBolus;
 	}
 	else if(direction == PULL)
     {
-		printf("setting the direction to PULL in liquid....\n");
+		printf("\nsetting the direction to PULL in liquid....\n");
 		if((mLUsed-mLBolus) > 0)
         {
 			mLUsed -= mLBolus;
@@ -78,11 +94,11 @@ void bolus(int direction)
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
 		
-		//digitalWrite (LED_OUT_PIN, 1);
-        sleep(usDelay/2);
+		digitalWrite (LED_OUT_PIN, 1);
+        delay(usDelay/2);
 
-		//digitalWrite (LED_OUT_PIN, 0);
-		sleep(usDelay/2);
+		digitalWrite (LED_OUT_PIN, 0);
+		delay(usDelay/2);
 	}
 }
 
@@ -97,14 +113,12 @@ void process()
     {
 		bolus(PULL);
 	}
-	else if(atof(inputStr) != 0)
+	else if(atoi(inputStr) != 0)
     {
-		int uLbolus = atof(inputStr);
+		int uLbolus = atoi(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
-		printf("\n after\nmlbolus: %f\n", mLBolus);
-		printf("ustepsperml: %ld\n", ustepsPerML);
-		printf("big bolus: %f\n", mLBigBolus);
-		printf("input len: %d\n", inputStrLen);
+
+		print_state();
 	}
 	else if(strcmp(inputStr, "q") == 0)
     {
@@ -136,62 +150,71 @@ int getVal(char c)
 
 void readInput()
 {
-	char inChar;
-	while ( access( InputFileName, F_OK ) == -1 ) 
+	while (access(InputFileName, F_OK) == -1) 
 	{
-		sleep(0.5);
+		sleep(2);
 	} 
 
-	FILE *fr = fopen (InputFileName, "rt");
+	FILE *fr = fopen (InputFileName, "r");
 	char c = fgetc(fr);
-	while(c != EOF)
+	printf("\n======================================================\n");
+	printf("\nEchoing the input....\n");
+	// hex to char reader
+	while (1)
 	{
-		inputStr[inputStrLen] = (char)(getVal((char)c) * 16 + getVal((char)fgetc(fr)));
-		printf("%c",inputStr[inputStrLen] );
-		inputStrLen++;
-		c = fgetc(fr);
-		if (c == EOF)
+		char inchar = (char)(getVal(c) * 16 + getVal((char)fgetc(fr)));
+		if( (int) inchar == 255) // Custom EOF
 		{
 			break;
 		}
+		inputStr[inputStrLen] = inchar;
+		printf("%c",inputStr[inputStrLen] );
+		inputStrLen++;
+		fgetc(fr);
 		c = fgetc(fr);
 	}
 	fclose(fr);
-	//remove(InputFileName);
+	remove(InputFileName);
 	inputStr[inputStrLen] = '\0';
     inputStrReady = true;
-	printf("\n before\nmlbolus: %f\n", mLBolus);
-	printf("ustepsperml: %ld\n", ustepsPerML);
-	printf("big bolus: %f\n", mLBigBolus);
-	printf("input len: %d\n", inputStrLen);
 }
 
 void initialize()
 {
+	mLBolus = 0.5; // default bolus value
+
+	// 10 steps per ml; that means 0.1 ml change per step.
+	ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+	mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
+
+	wiringPiSetup();
+	pinMode (LED_OUT_PIN, OUTPUT);
 	printf("\nStarting syringe pump.\n");
-	//wiringPiSetup();
-	//pinMode (LED_OUT_PIN, OUTPUT) ;
-	//comm_stub_init();
 }
 
 void terminate()
 {
 	printf("\nTerminating syringe pump.\n");
-	//comm_stub_end();
 }
+
+float gettime()
+{
+	struct timespec now;
+	clock_gettime( CLOCK_MONOTONIC_RAW, &now );
+	return (float)now.tv_sec + (float)now.tv_nsec / 1000000000;
+}
+
 
 void loop()
 {
 	readInput();
 	if(inputStrReady)
     {
-		//challenge_len = sizeof(challenge);
-		//dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
-
+		float t = gettime();
 		process();
-
-		//quote_len = sizeof(quote_out);
-		//dfa_quote(quote_out, &quote_len);
+		t = gettime() - t;
+		printf("\nelapsed time for the operation: %f", ((float)t));
+		printf("\n");
 	}
 }
 

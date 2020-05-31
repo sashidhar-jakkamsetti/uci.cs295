@@ -50,6 +50,18 @@ void dfa_init()
     challenge = (uint8_t *) malloc(challenge_len);
     ipointer = readfromSmem(shared_memory1->some_data, ipointer, challenge);
 
+    char header[7] = "header:";
+    char newline = '\n';
+
+    memcpy(report + preport, header, sizeof(header));
+    preport += sizeof(header);
+    memcpy(report + preport, &main_start, sizeof(main_start));
+    preport += sizeof(main_start);
+    memcpy(report + preport, &main_end, sizeof(main_end));
+    preport += sizeof(main_end);
+    memcpy(report + preport, &newline, sizeof(newline));
+    preport += sizeof(newline);
+
     hmac_init(main_start, main_end, challenge, challenge_len);
 
     free(challenge);
@@ -95,6 +107,9 @@ void dfa_primevariable_checker()
                     printf("ERROR:in use\n");
                     memcpy(report + preport, report_snip, report_snip_len);
                     preport += report_snip_len;
+                    char newline = '\n';
+                    memcpy(report + preport, &newline, sizeof(newline));
+                    preport += sizeof(newline);
                     hmac_update(report_snip, report_snip_len);
                 }
             }

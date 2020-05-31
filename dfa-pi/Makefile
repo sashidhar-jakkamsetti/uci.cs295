@@ -7,7 +7,7 @@ CFLAGS=-Wall
 
 PC=python
 
-all: dfa source syringePumpSimInst
+all: verifier syringePumpSimInst syringePumpSim source dfa
 
 dfa:
 	$(CC) $(CFLAGS) dfa.c sha224-256.c sha1.c sha384-512.c usha.c ra.c -o dfa.o
@@ -20,6 +20,9 @@ syringePumpSimInst:
 
 syringePumpSim:
 	$(CC) $(CFLAGS) syringePumpSimOriginal.c -o syringePumpSimOriginal.o -lwiringPi
+
+verifier:
+	$(CC) $(CFLAGS) verifier.c sha224-256.c sha1.c sha384-512.c usha.c ra.c -o verifier.o
 
 clean:
 	rm *.o *.out
