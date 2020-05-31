@@ -30,11 +30,10 @@ static struct kvp primevariable_storage[100];
 int nprimevariable;
 
 unsigned ipointer;
+int initialized = 0;
 
 void dfa_init()
 {
-    printf("in dfa_init()\n");
-
     report = (char *)malloc(1024);
     memset(report, 0, 1024);
     preport = 0;
@@ -50,6 +49,8 @@ void dfa_init()
     challenge = (uint8_t *) malloc(challenge_len);
     ipointer = readfromSmem(shared_memory1->some_data, ipointer, challenge);
 
+    printf("in dfa_init(%d, %d)\n", main_start, main_end);
+
     char header[7] = "header:";
     char newline = '\n';
 
@@ -63,13 +64,17 @@ void dfa_init()
     preport += sizeof(newline);
 
     hmac_init(main_start, main_end, challenge, challenge_len);
+    initialized = 1;
 
     free(challenge);
 }
 
 void dfa_primevariable_checker()
 {
-    printf("in void dfa_primevariable_checker()\n");
+    if (initialized == 0)
+    {
+        return;
+    }
 
     int variable_id;
     void *variable;
@@ -86,6 +91,8 @@ void dfa_primevariable_checker()
     report_snip = (char *)malloc(report_snip_len);
     ipointer = readfromSmem(shared_memory1->some_data, ipointer, report_snip);
     ipointer = readfromSmem(shared_memory1->some_data, ipointer, &event);
+
+    printf("in void dfa_primevariable_checker(%d, %s)\n", variable_id, event == 0? "DEF" : "USE");
 
     int found = 0;
     for (int i = 0; i < nprimevariable; i++)
@@ -127,6 +134,10 @@ void dfa_primevariable_checker()
 
 void dfa_quote()
 {
+    if (initialized == 0)
+    {
+        return;
+    }
     printf("in dfa_quote()\n");
 
     char out[OUT_LEN];

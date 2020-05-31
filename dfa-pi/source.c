@@ -82,10 +82,34 @@ void bolus(int direction)
 	print_state();
 
 	long steps = mLBolus * ustepsPerML;
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: ustepsPerML");
+		dfa_primevariable_checker(2, (void *)&ustepsPerML, sizeof(ustepsPerML), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLBolus");
+		dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: steps");
+		dfa_primevariable_checker(3, (void *)&steps, sizeof(steps), report_snip, (int)strlen(report_snip), DEF);
 	if(direction == PUSH)
     {
 		printf("\nsetting the direction to PUSH out liquid....\n");
 		mLUsed += mLBolus;
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLBolus");
+		dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLUsed");
+		dfa_primevariable_checker(4, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLUsed");
+		dfa_primevariable_checker(4, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 	}
 	else if(direction == PULL)
     {
@@ -93,10 +117,26 @@ void bolus(int direction)
 		if((mLUsed-mLBolus) > 0)
         {
 			mLUsed -= mLBolus;
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLBolus");
+		dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLUsed");
+		dfa_primevariable_checker(4, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), USE);
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLUsed");
+		dfa_primevariable_checker(4, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 		}
 		else
         {
 			mLUsed = 0;
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLUsed");
+		dfa_primevariable_checker(4, (void *)&mLUsed, sizeof(mLUsed), report_snip, (int)strlen(report_snip), DEF);
 		}
 	}	
 
@@ -131,6 +171,10 @@ void process()
     {
 		int uLbolus = atoi(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLBolus");
+		dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), DEF);
 
 		print_state();
 	}
@@ -188,6 +232,7 @@ void readInput()
 		c = fgetc(fr);
 	}
 	fclose(fr);
+	printf("\n");
 	remove(InputFileName);
 	inputStr[inputStrLen] = '\0';
     inputStrReady = true;
@@ -198,8 +243,16 @@ void initialize()
 {
 	mLBolus = 0.5; // default bolus value
 
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: mLBolus");
+		dfa_primevariable_checker(1, (void *)&mLBolus, sizeof(mLBolus), report_snip, (int)strlen(report_snip), DEF);
+
 	// 10 steps per ml; that means 0.1 ml change per step.
 	ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
+
+		memset(report_snip, 0, sizeof(report_snip));
+		snprintf(report_snip, sizeof(report_snip), "%s%s%s%s%s", "File: ", __FILE__, ": Func: ", __func__, ": Var: ustepsPerML");
+		dfa_primevariable_checker(2, (void *)&ustepsPerML, sizeof(ustepsPerML), report_snip, (int)strlen(report_snip), DEF);
 	mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
 
 	wiringPiSetup();

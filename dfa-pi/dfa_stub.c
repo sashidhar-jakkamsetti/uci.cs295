@@ -6,6 +6,8 @@
 
 #define AccessPerms 0644
 
+int initialized = 0;
+
 void comm_stub_init()
 {
 	printf("Creating shared memory with semaphore...\n");
@@ -43,10 +45,17 @@ void comm_stub_init()
 
 	//Assign the shared_memory segment
 	shared_memory1 = (struct shared_memory1_struct *)shared_memory1_pointer;
+
+	initialized = 1;
 }
 
 void comm_stub_end()
 {
+	if (initialized == 0)
+	{
+		return;
+	}
+
 	//Detach and delete
 	if (shmdt(shared_memory1_pointer) == -1)
 	{
@@ -64,10 +73,16 @@ void comm_stub_end()
 	if (semctl(semaphore1_id, 0, IPC_RMID, sem_union_delete) == -1)
 		fprintf(stderr, "Failed to delete semaphore\n");
 
+	initialized = 0;
 }
 
 uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint8_t *challenge, const int challenge_len)
 {
+	if (initialized == 0)
+	{
+		return;
+	}
+
 	int func_id = 1;
 
 	unsigned ipointer = 0;
@@ -105,6 +120,11 @@ uint32_t dfa_init(const uint32_t main_start, const uint32_t main_end, const uint
 
 uint32_t dfa_primevariable_checker(const int variable_id, const void *variable, const int variable_len, const char *report_snip, const int report_len, int event)
 {
+	if (initialized == 0)
+	{
+		return;
+	}
+
 	int func_id = 2;
 
 	unsigned ipointer = 0;
@@ -144,6 +164,11 @@ uint32_t dfa_primevariable_checker(const int variable_id, const void *variable, 
 
 uint32_t dfa_quote(uint8_t *out, uint32_t *out_len)
 {
+	if (initialized == 0)
+	{
+		return;
+	}
+
 	int func_id = 3;
 
 	unsigned ipointer = 0;

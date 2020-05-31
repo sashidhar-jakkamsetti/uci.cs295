@@ -13,7 +13,7 @@ unsigned writetoSmem(const void* memptr, const unsigned index, const void *datap
 {
     unsigned ipointer = index;
     memcpy((char*)memptr + ipointer, &size, sizeof(size));
-    printf("writing %d bytes\n", size);
+    //printf("writing %d bytes\n", size);
     ipointer += sizeof(size);
     memcpy((char*)memptr + ipointer, datapointer, size);
     ipointer += size;
@@ -32,7 +32,7 @@ unsigned readfromSmem(const void* memptr, const unsigned index, void *datapointe
     unsigned ipointer = index;
     unsigned size;
     memcpy(&size, (char*)memptr + ipointer, sizeof(size));
-    printf("reading %d bytes\n", size);
+    //printf("reading %d bytes\n", size);
     ipointer += sizeof(size);
     memcpy(datapointer, (char*)memptr + ipointer, size);
     ipointer += size;

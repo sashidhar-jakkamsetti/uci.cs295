@@ -12,17 +12,17 @@ static uint8_t out[64];
 static int out_len;
 
 
-float gettime()
+double gettime()
 {
 	struct timespec now;
 	clock_gettime( CLOCK_MONOTONIC_RAW, &now );
-	return (float)now.tv_sec + (float)now.tv_nsec / 1000000000;
+	return (double)((double)now.tv_sec * 1000000.0)+ ((double)now.tv_nsec / 1000.0);
 }
 
 
 int main()
 {
-    float t = gettime();
+    double t = gettime();
     FILE* report_file = fopen(ReportFileName, "r");
     char* line = NULL;
     int len = 0;
@@ -42,8 +42,8 @@ int main()
         else if(nol > 1 && read > 0)
         {
             t = gettime() - t;
-            printf("MESSED UP!\n");
-            printf("\nelapsed time for the operation: %f", ((float)t));
+            printf("HACKED! PRIME VARIABLES GOT MESSED UP!\n");
+            printf("\nelapsed time for the operation: %f", ((double)t / 1000.0));
 		    printf("\n");
             return 0;
         }
@@ -57,14 +57,14 @@ int main()
     {
         t = gettime() - t;
         printf("All good!\n");
-        printf("\nelapsed time for the operation: %f", ((float)t));
+        printf("\nelapsed time for the operation: %lf", ((double)t / 1000.0));
 		printf("\n");
         return 0;
     }
 
     t = gettime() - t;
-    printf("MESSED UP!\n");
-    printf("\nelapsed time for the operation: %f", ((float)t));
+    printf("HACKED! DIGEST or REPORT GOT MESSED UP!\n");
+    printf("\nelapsed time for the operation: %f", ((double)t / 1000.0));
 	printf("\n");
     return 0;
 }

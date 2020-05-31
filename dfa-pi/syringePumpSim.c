@@ -186,6 +186,7 @@ void readInput()
 		c = fgetc(fr);
 	}
 	fclose(fr);
+	printf("\n");
 	remove(InputFileName);
 	inputStr[inputStrLen] = '\0';
     inputStrReady = true;
