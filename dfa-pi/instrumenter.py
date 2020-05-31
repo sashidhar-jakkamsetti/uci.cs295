@@ -46,7 +46,8 @@ def identify_secret_variables():
     with open(file_path) as code_file:
         for line in code_file:
             if(key_word in line):
-                tokens = line.split(' ')
+                tokens = []
+                tokens.extend(line.strip().strip(';').split(' '))
                 prime_data_variables.add(tokens[2])
                 id += 1
                 variable_id_map[tokens[2]] = id
