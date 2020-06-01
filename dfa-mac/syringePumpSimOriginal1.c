@@ -16,7 +16,7 @@
 #define STEPS_PER_REVOLUTION 10.0
 #define MICROSTEPS_PER_STEP 1.0
 
-#define SPEED_MICROSECONDS_DELAY 2000
+#define SPEED_MICROSECONDS_DELAY 10
 
 #define	false	0
 #define	true	1
@@ -25,8 +25,7 @@
 
 #define LED_OUT_PIN 0
 
-#define InputFileName "input.hex"
-
+#define InputFileName "input.data"
 /* -- Global variables -- */
 
 // Input related variables
@@ -54,12 +53,20 @@ float mLUsed = 0.0;
 int quit = 0;
 
 
-void bolus(int direction)
+void print_state()
 {
-	printf("\nmlbolus: %f\n", mLBolus);
+	printf("\n\nEchoing data variables.... \n");
+	printf("mlbolus: %f\n", mLBolus);
 	printf("ustepsPerML: %ld\n", ustepsPerML);
 	printf("mlPerStep: %f\n", mlPerStep);
 	printf("input len: %d\n", inputStrLen);
+}
+
+
+void bolus(int direction)
+{
+	print_state();
+
 	long steps = mLBolus * ustepsPerML;
 	if(direction == PUSH)
     {
@@ -85,12 +92,8 @@ void bolus(int direction)
     {
 		printf("%s %6.3f ml (%s %6.3f ml in reality)\n", direction==PUSH ? "pushing":"pulling", 
 				(float) (i + 1) * mlPerStep, direction==PUSH ? "pushed":"pulled", (float) (i + 1.0) * (1.0 / ustepsPerML));
-		
-		//digitalWrite (LED_OUT_PIN, 1);
-        sleep(usDelay/2);
 
-		//digitalWrite (LED_OUT_PIN, 0);
-		sleep(usDelay/2);
+        sleep(usDelay);
 	}
 }
 
@@ -109,6 +112,8 @@ void process()
     {
 		int uLbolus = atof(inputStr);
 		mLBolus = (float)uLbolus / 1000.0;
+
+		print_state();
 	}
 	else if(strcmp(inputStr, "q") == 0)
     {
@@ -142,49 +147,47 @@ void readInput()
 {
 	while ( access( InputFileName, F_OK ) == -1 ) 
 	{
-		sleep(0.5);
+		sleep(1);
 	} 
 
-	FILE *fr = fopen (InputFileName, "rt");
+	FILE *fr = fopen (InputFileName, "r");
 	char c = fgetc(fr);
-	printf("\n");
-	while(c != EOF)
+	printf("\n======================================================\n");
+	printf("\nEchoing the input....\n");
+	// hex to char reader
+	while(1)
 	{
-		inputStr[inputStrLen] = (char)(getVal((char)c) * 16 + getVal((char)fgetc(fr)));
-		printf("%c",inputStr[inputStrLen] );
-		inputStrLen++;
-		c = fgetc(fr);
-		if (c == EOF)
+		char inchar = (char)(getVal(c) * 16 + getVal((char)fgetc(fr)));
+		if( (int) inchar == -1) // Custom EOF
 		{
 			break;
 		}
+		inputStr[inputStrLen] = inchar;
+		printf("%c",inputStr[inputStrLen] );
+		inputStrLen++;
+		fgetc(fr);
 		c = fgetc(fr);
 	}
 	fclose(fr);
-	//remove(InputFileName);
+	remove(InputFileName);
 	inputStr[inputStrLen] = '\0';
     inputStrReady = true;
 }
 
 void initialize()
 {
-	printf("\nStarting syringe pump.\n");
-
 	mLBolus = 0.5; // default bolus value
 
 	// 10 steps per ml; that means 0.1 ml change per step.
 	ustepsPerML = (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM) / (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH );
 	mlPerStep = (SYRINGE_VOLUME_ML * THREADED_ROD_PITCH ) / (MICROSTEPS_PER_STEP * STEPS_PER_REVOLUTION * SYRINGE_BARREL_LENGTH_MM);
-
-	//wiringPiSetup();
-	//pinMode (LED_OUT_PIN, OUTPUT) ;
-	//comm_stub_init();
+	
+	printf("\nStarting syringe pump.\n");
 }
 
 void terminate()
 {
 	printf("\nTerminating syringe pump.\n");
-	//comm_stub_end();
 }
 
 void loop()
@@ -192,13 +195,8 @@ void loop()
 	readInput();
 	if(inputStrReady)
     {
-		//challenge_len = sizeof(challenge);
-		//dfa_init((uint32_t)&initialize, (uint32_t)&terminate, challenge, challenge_len);
-
 		process();
-
-		//quote_len = sizeof(quote_out);
-		//dfa_quote(quote_out, &quote_len);
+		printf("\n");
 	}
 }
 
